@@ -5,6 +5,6 @@ setup(
     packages=find_packages(),
     version='0.1.0',
     description='Create new AI vibrancy index',
-    author='Andre',
+    author='Andre Barbe',
     license='',
 )

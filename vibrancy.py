@@ -21,6 +21,7 @@ data_publications_long = data_publications #rename wide to be clear
 #Reshape publications data from long to wide
 data_publications_wide = data_publications_long.pivot(index="Country Name",columns="Doc Type",values="Number of Papers") # Learned how to do this here: https://www.datasciencemadesimple.com/reshape-long-wide-pandas-python-pivot-function/
 data_publications = data_publications_wide.reset_index() # the pivot changed country name to the df index. This changes Country name from the df's index back to a variable
+data_publications["Country Name"] = data_publications["Country Name"].str.title() # Capitalize all the same to make merging later easier
 
 
 
@@ -33,7 +34,7 @@ data_investment_amount = data_investment_amount.loc[ # Drop if both the investme
     ~pd.isna(data_investment_amount["Investment Amount"]) | ~pd.isna(data_investment_amount["Country Name"]) #this selects rows if they have a country name or a investment value that is a number (ie , not isna). Note that I have to use ~ for not and | for or, as described here https://stackoverflow.com/questions/21415661/logical-operators-for-boolean-indexing-in-pandas
 ]
 data_investment_amount = data_investment_amount.loc[data_investment_amount["Country Name"]!="Grand Total"]
-
+data_investment_amount["Country Name"] = data_investment_amount["Country Name"].str.title() # Capitalize all the same to make merging later easier
 
 # Clean number of companies data
 data_number_companies = data_raw_number_companies
@@ -44,15 +45,22 @@ data_number_companies = data_number_companies.loc[ # Drop if both the investment
     ~pd.isna(data_number_companies["Number of Companies"]) | ~pd.isna(data_number_companies["Country Name"]) #this selects rows if they have a country name or a investment value that is a number (ie , not isna). Note that I have to use ~ for not and | for or, as described here https://stackoverflow.com/questions/21415661/logical-operators-for-boolean-indexing-in-pandas
 ]
 data_number_companies = data_number_companies.loc[data_number_companies["Country Name"]!="Grand Total"]
+data_number_companies["Country Name"] = data_number_companies["Country Name"].str.title() # Capitalize all the same to make merging later easier
+
 
 
 # Merge data
 data_main = data_number_companies.merge(data_investment_amount, on="Country Name", how="outer") # Outer merge keeps data that is in either
-data_main = data_main.merge(data_publications_wide, on="Country Name", how="outer") # Outer merge keeps data that is in either
-
-#TODO: remove country names of nan and -
+data_main = data_main.merge(data_publications, on="Country Name", how="outer") # Outer merge keeps data that is in either
 
 #TODO: merge duplicate country names
+data_main = data_main.sort_values("Country Name")
+
+#TODO: remove country names of nan and "-"
+data_main = data_main.loc[data_main["Country Name"]!="-"]
+data_main = data_main.loc[data_main["Country Name"]!="None listed"]
+data_main = data_main.loc[~pd.isna(data_main["Country Name"])] #Drop if country name is missing
+#data_main = data_main.dropna() ##Drop entries that contain any missing values
 
 #Create normalized verion of variables
 list_variables_to_normalize = ["Number of Companies","Investment Amount","Conference","Journal","Patent","Repository"]
@@ -61,5 +69,3 @@ for variable_name in list_variables_to_normalize:
 
 
 pass # Use this placeholder line with a break to stop the program from completing
-
-asdf
