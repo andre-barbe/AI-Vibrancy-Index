@@ -69,7 +69,7 @@ data_main = data_main.merge(data_publications, on="Country Name",
 data_main = data_main.sort_values("Country Name")
 
 data_main = data_main.loc[data_main["Country Name"] != "-"]
-data_main = data_main.loc[data_main["Country Name"] != "None listed"]
+data_main = data_main.loc[data_main["Country Name"] != "None Listed"]
 data_main = data_main.loc[~pd.isna(data_main["Country Name"])]  # Drop if country name is missing
 # data_main = data_main.dropna() ##Drop entries that contain any missing values
 
@@ -80,8 +80,21 @@ for variable_name in list_variables_to_normalize:
     data_main[variable_name] = data_main[variable_name].fillna(0) # Replace nans with 0
     data_main[variable_name + " Normalized"] = 100 * data_main[variable_name] / data_main[variable_name].max() # Normalize values from 0 to 100
 
+
+
 # Create new index
-    data_main["Index Equal Weights"] = data_main[list_variables_to_normalize].mul([1,1,1,1,1,1]).sum(1) # Multiply by vector weights and then sums, as described here: https://stackoverflow.com/questions/47026517/multiply-rows-in-dataframe-then-sum-them-together-python
-    #TODO: Add "normalized" to variable names
+list_normalized_variables = [x + " Normalized" for x in list_variables_to_normalize] # Create list of normalized variable names
+data_main["Index Equal Metric Weights"] = data_main[list_normalized_variables].mul([1,1,1,1,1,1]).sum(1) # Multiply by vector weights and then sums, as described here: https://stackoverflow.com/questions/47026517/multiply-rows-in-dataframe-then-sum-them-together-python
+data_main["Index Equal Pillar Weights"] = data_main[list_normalized_variables].mul([2,2,1,1,1,1]).sum(1)
+data_main["Index Andre Prefers"] = data_main[list_normalized_variables].mul([0,4,1,1,1,1]).sum(1)
+
+# Create ranking for each new index
+# .rank() gives the largest value a rank of N, so you have to subtract a country's score from the max, in order to get the "normal" rank
+data_main['Rank Equal Metric Weights'] = 1 + max(data_main['Index Equal Metric Weights'].rank()) - data_main['Index Equal Metric Weights'].rank()
+data_main['Rank Equal Pillar Weights'] = 1 + max(data_main['Index Equal Pillar Weights'].rank()) - data_main['Index Equal Pillar Weights'].rank()
+data_main['Rank Andre Prefers'] = 1 + max(data_main['Index Andre Prefers'].rank()) - data_main['Index Andre Prefers'].rank()
+
+data_main = data_main.sort_values("Rank Equal Metric Weights")
+# All the indices seem to give similar rankings. So maybe not a big deal?
 
 pass  # Use this placeholder line with a break to stop the program from completing
