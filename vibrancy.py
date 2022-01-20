@@ -1,8 +1,9 @@
 # Main program that does everything
 
 import pandas as pd
+import numpy as np
 
-# ===============Import raw data from excel files===============
+# ===============Import raw data from Excel sheets of Vibrancy website files===============
 # How to read from excel https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html
 # Need to use engine option as described here: https://stackoverflow.com/questions/48066517/python-pandas-pd-read-excel-giving-importerror-install-xlrd-0-9-0-for-excel
 data_raw_publications = pd.read_excel("data/raw/MAG - 2021 AI Index Report (Main).xlsx", sheet_name="By CountryRegion",
@@ -95,6 +96,19 @@ data_main['Rank Equal Pillar Weights'] = 1 + max(data_main['Index Equal Pillar W
 data_main['Rank Andre Prefers'] = 1 + max(data_main['Index Andre Prefers'].rank()) - data_main['Index Andre Prefers'].rank()
 
 data_main = data_main.sort_values("Rank Equal Metric Weights")
+
+# Calculate the max difference in Country Rank between the Various indices
+data_main['Rank Difference Max'] = np.maximum(
+    np.maximum( #Need to use np maximum command for pairwise vector max, see https://stackoverflow.com/questions/51813621/pandas-series-pairwise-maximum
+        abs(data_main['Rank Andre Prefers']-data_main['Rank Equal Pillar Weights']),
+        abs(data_main['Rank Andre Prefers']-data_main['Rank Equal Metric Weights'])
+    ),
+    abs(data_main['Rank Equal Metric Weights']-data_main['Rank Equal Pillar Weights'])
+)
+
 # All the indices seem to give similar rankings. So maybe not a big deal?
+
+# Export results to CSV
+data_main.to_csv("data/processed/vibrancy_data_main.csv")
 
 pass  # Use this placeholder line with a break to stop the program from completing
