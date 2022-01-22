@@ -98,6 +98,7 @@ data_main['Rank Andre Prefers'] = 1 + max(data_main['Index Andre Prefers'].rank(
 data_main = data_main.sort_values("Rank Equal Metric Weights")
 
 # Calculate the max difference in Country Rank between the Various indices
+# All the indices seem to give similar rankings. So maybe not a big deal?
 data_main['Rank Difference Max'] = np.maximum(
     np.maximum( #Need to use np maximum command for pairwise vector max, see https://stackoverflow.com/questions/51813621/pandas-series-pairwise-maximum
         abs(data_main['Rank Andre Prefers']-data_main['Rank Equal Pillar Weights']),
@@ -106,13 +107,8 @@ data_main['Rank Difference Max'] = np.maximum(
     abs(data_main['Rank Equal Metric Weights']-data_main['Rank Equal Pillar Weights'])
 )
 
-# All the indices seem to give similar rankings. So maybe not a big deal?
-
 # Export results to CSV
 data_main.to_csv("data/processed/vibrancy_data_main.csv")
 data_main.to_csv("reports/vibrancy_data_main.csv")
-
-
-#TODO: Maybe create code to export to a google sheet?
 
 pass  # Use this placeholder line with a break to stop the program from completing
