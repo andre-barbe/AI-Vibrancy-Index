@@ -6,27 +6,30 @@ import numpy as np
 # ===============Import raw data from Excel sheets of Vibrancy website files===============
 # How to read from excel https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html
 # Need to use engine option as described here: https://stackoverflow.com/questions/48066517/python-pandas-pd-read-excel-giving-importerror-install-xlrd-0-9-0-for-excel
-data_raw_publications = pd.read_excel("data/raw/MAG - 2021 AI Index Report (Main).xlsx", sheet_name="By CountryRegion",
+data_raw_research = pd.read_excel("data/raw/MAG - 2021 AI Index Report (Main).xlsx", sheet_name="By CountryRegion",
                                       engine='openpyxl')
 data_raw_investment_amount = pd.read_excel("data/raw/NetBase Quid - 2021 AI Index Report.xlsx",
                                            sheet_name="Investment Amount", engine='openpyxl')
 data_raw_number_companies = pd.read_excel("data/raw/NetBase Quid - 2021 AI Index Report.xlsx",
                                           sheet_name="Number of Companies", engine='openpyxl')
+data_raw_ranking_2020 = pd.read_excel("data/raw/2020 Global Vibrancy Ranking - Absolute.xlsx",
+                                          sheet_name="Data", engine='openpyxl')
 
-# =============== Clean publications data ===============
-data_publications = data_raw_publications
-data_publications = data_publications[data_publications["Publish Year"] == 2020]  # Drop non-2020 data
-data_publications = data_publications[
-    data_publications["Field of Study"] == "Artificial intelligence"]  # Drop non-AI data
+# =============== Filter research data ===============
+data_research = data_raw_research
+data_research = data_research[data_research["Publish Year"] == 2020]  # Drop non-2020 data
+data_research = data_research[
+    data_research["Field of Study"] == "Artificial intelligence"]  # Drop non-AI data
 # TODO: Change to collapse. I just don't know how to do that yet # Collapse number of papers or citations, by field of study
-data_publications = data_publications[["Country Name", "Doc Type", "Number of Papers"]]  # Drop unnecessary variables
-data_publications_long = data_publications  # rename wide to be clear
-# Reshape publications data from long to wide
-data_publications_wide = data_publications_long.pivot(index="Country Name", columns="Doc Type",
-                                                      values="Number of Papers")  # Learned how to do this here: https://www.datasciencemadesimple.com/reshape-long-wide-pandas-python-pivot-function/
-data_publications = data_publications_wide.reset_index()  # the pivot changed country name to the df index. This changes Country name from the df's index back to a variable
-data_publications["Country Name"] = data_publications[
-    "Country Name"].str.title()  # Capitalize all the same to make merging later easier
+data_research = data_research[["Country Name", "Doc Type", "Number of Papers","Number of Citations"]]  # Drop unnecessary variables
+
+# =============== Reshape research data ===============
+data_research_long = data_research  # rename wide to be clear
+# Reshape research data from long to wide
+data_research_wide = data_research_long.pivot(index="Country Name", columns="Doc Type",
+                                                      values=["Number of Papers","Number of Citations"])  # Learned how to do this here: https://www.datasciencemadesimple.com/reshape-long-wide-pandas-python-pivot-function/
+data_research = data_research_wide.reset_index()  # the pivot changed country name to the df index. This changes Country name from the df's index back to a variable
+data_research["Country Name"] = data_research["Country Name"].str.title()  # Capitalize all the same to make merging later easier
 
 # =============== Clean investment amount data ===============
 data_investment_amount = data_raw_investment_amount  # save raw investment data safely and only manipulate working data
@@ -60,10 +63,15 @@ data_number_companies = data_number_companies.loc[data_number_companies["Country
 data_number_companies["Country Name"] = data_number_companies[
     "Country Name"].str.title()  # Capitalize all the same to make merging later easier
 
+# =============== Clean 2020 raking data ===============
+data_ranking_2020 = data_raw_ranking_2020
+
 # =============== Merge various cleaned data ===============
 data_main = data_number_companies.merge(data_investment_amount, on="Country Name",
                                         how="outer")  # Outer merge keeps data that is in either
-data_main = data_main.merge(data_publications, on="Country Name",
+data_main = data_main.merge(data_research, on="Country Name",
+                            how="outer")
+data_main = data_main.merge(data_ranking_2020, on="Country Name",
                             how="outer")  # Outer merge keeps data that is in either
 
 # =============== Clean the merged Data ===============
@@ -75,30 +83,24 @@ data_main = data_main.loc[~pd.isna(data_main["Country Name"])]  # Drop if countr
 # data_main = data_main.dropna() ##Drop entries that contain any missing values
 
 # Create normalized version of variables
-list_variables_to_normalize = ["Number of Companies", "Investment Amount", "Conference", "Journal", "Patent",
-                               "Repository"]
+list_variables_to_normalize = list(data_main.drop(["Country Name","2020 Vibrancy Rank (only absolute metrics)"],axis=1)) # Create list of all variables except "Country Name" and the 2020 ranking. See https://stackoverflow.com/questions/29763620/how-to-select-all-columns-except-one-column-in-pandas
 for variable_name in list_variables_to_normalize:
-    data_main[variable_name] = data_main[variable_name].fillna(0) # Replace nans with 0
-    data_main[variable_name + " Normalized"] = 100 * data_main[variable_name] / data_main[variable_name].max() # Normalize values from 0 to 100
+    data_main[''.join(variable_name) + " Normalized"] = 100 * data_main[variable_name].fillna(0) / data_main[variable_name].fillna(0).max() # Normalize values from 0 to 100. Replaces NaNs with 0 for calculation, but leaves NaNs in original columns
 
+# Create new variable that lists the number of NaNs in normalized variables
+data_main["Number NaN"]=data_main[list_variables_to_normalize].isnull().sum(axis=1) # Creates new column with number of NANs in each row. See https://stackoverflow.com/questions/30059260/python-pandas-counting-the-number-of-missing-nan-in-each-row
 
+# Create my new indexes using each of the 3 weighting methods
+list_normalized_variables = [''.join(variable_name) + " Normalized" for variable_name in list_variables_to_normalize] # Create list of normalized variable names
+data_main["Index Equal Metric Weights"] = data_main[list_normalized_variables].mul([1,1,1,1,1,1,1,1,1,1]).sum(1) # Multiply by vector weights and then sums, as described here: https://stackoverflow.com/questions/47026517/multiply-rows-in-dataframe-then-sum-them-together-python
+data_main["Index Equal Pillar Weights"] = data_main[list_normalized_variables].mul([2,2,1,1,1,1,1,1,1,1]).sum(1)
+data_main["Index Andre Prefers"] = data_main[list_normalized_variables].mul([0,4,1,1,1,1,1,1,1,1]).sum(1)
 
-# Create new index
-list_normalized_variables = [x + " Normalized" for x in list_variables_to_normalize] # Create list of normalized variable names
-data_main["Index Equal Metric Weights"] = data_main[list_normalized_variables].mul([1,1,1,1,1,1]).sum(1) # Multiply by vector weights and then sums, as described here: https://stackoverflow.com/questions/47026517/multiply-rows-in-dataframe-then-sum-them-together-python
-data_main["Index Equal Pillar Weights"] = data_main[list_normalized_variables].mul([2,2,1,1,1,1]).sum(1)
-data_main["Index Andre Prefers"] = data_main[list_normalized_variables].mul([0,4,1,1,1,1]).sum(1)
+# Create rankings for each country
+data_main[['Rank Equal Metric Weights', 'Rank Equal Pillar Weights','Rank Andre Prefers']] = data_main[['Index Equal Metric Weights','Index Equal Pillar Weights','Index Andre Prefers']].rank(ascending= False).astype(int) # Create rankings for each of the new weighting methods
+data_main = data_main.sort_values("Rank Equal Metric Weights") # Sort countries by ranking to make display easier
 
-# Create ranking for each new index
-# .rank() gives the largest value a rank of N, so you have to subtract a country's score from the max, in order to get the "normal" rank
-data_main['Rank Equal Metric Weights'] = 1 + max(data_main['Index Equal Metric Weights'].rank()) - data_main['Index Equal Metric Weights'].rank()
-data_main['Rank Equal Pillar Weights'] = 1 + max(data_main['Index Equal Pillar Weights'].rank()) - data_main['Index Equal Pillar Weights'].rank()
-data_main['Rank Andre Prefers'] = 1 + max(data_main['Index Andre Prefers'].rank()) - data_main['Index Andre Prefers'].rank()
-
-data_main = data_main.sort_values("Rank Equal Metric Weights")
-
-# Calculate the max difference in Country Rank between the Various indices
-# All the indices seem to give similar rankings. So maybe not a big deal?
+# Calculate the max difference in Country Rank between the Various weighting schemes
 data_main['Rank Difference Max'] = np.maximum(
     np.maximum( #Need to use np maximum command for pairwise vector max, see https://stackoverflow.com/questions/51813621/pandas-series-pairwise-maximum
         abs(data_main['Rank Andre Prefers']-data_main['Rank Equal Pillar Weights']),
