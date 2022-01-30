@@ -6,20 +6,24 @@ import numpy as np
 # ===============Import raw data from Excel sheets of Vibrancy website files===============
 # How to read from excel https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html
 # Need to use engine option as described here: https://stackoverflow.com/questions/48066517/python-pandas-pd-read-excel-giving-importerror-install-xlrd-0-9-0-for-excel
-data_raw_research = pd.read_excel("data/raw/MAG - 2021 AI Index Report (Main).xlsx", sheet_name="By CountryRegion",
-                                      engine='openpyxl')
-data_raw_investment_amount = pd.read_excel("data/raw/NetBase Quid - 2021 AI Index Report.xlsx",
-                                           sheet_name="Investment Amount", engine='openpyxl')
-data_raw_number_companies = pd.read_excel("data/raw/NetBase Quid - 2021 AI Index Report.xlsx",
-                                          sheet_name="Number of Companies", engine='openpyxl')
-data_raw_ranking_2020 = pd.read_excel("data/raw/2020 Global Vibrancy Ranking - Absolute.xlsx",
-                                          sheet_name="Data", engine='openpyxl')
+version_year = 2021 #flag to import either the 2021 or 2022 version of the data
+if version_year == 2021:
+    data_raw_research = pd.read_excel("data/raw/MAG - 2021 AI Index Report (Main).xlsx", sheet_name="By CountryRegion", engine='openpyxl')
+    data_raw_investment_amount = pd.read_excel("data/raw/NetBase Quid - 2021 AI Index Report.xlsx", sheet_name="Investment Amount", engine='openpyxl')
+    data_raw_number_companies = pd.read_excel("data/raw/NetBase Quid - 2021 AI Index Report.xlsx", sheet_name="Number of Companies", engine='openpyxl')
+    data_raw_ranking_2020 = pd.read_excel("data/raw/2020 Global Vibrancy Ranking - Absolute.xlsx", sheet_name="Data", engine='openpyxl')
+if version_year == 2022:
+    #TODO: improt citation data
+    #TODO: import publication data
+    data_raw_investment_amount = pd.read_excel("data/raw/2022 Report Data/NetBase Data for Vibrancy Tool.xlsx", sheet_name="Private Investment Across Count", engine='openpyxl')
+    data_raw_number_companies = pd.read_excel("data/raw/2022 Report Data/NetBase Data for Vibrancy Tool.xlsx", sheet_name="Newly Funded AI Companies Acros", engine='openpyxl')
+    data_raw_ranking_2020 = pd.read_excel("data/raw/2020 Global Vibrancy Ranking - Absolute.xlsx", sheet_name="Data", engine='openpyxl')
 
+#TODO: revise rest of code to use the 2022 data
 # =============== Filter research data ===============
 data_research = data_raw_research
 data_research = data_research[data_research["Publish Year"] == 2020]  # Drop non-2020 data
-data_research = data_research[
-    data_research["Field of Study"] == "Artificial intelligence"]  # Drop non-AI data
+data_research = data_research[data_research["Field of Study"] == "Artificial intelligence"]  # Drop non-AI data
 # TODO: Change to collapse. I just don't know how to do that yet # Collapse number of papers or citations, by field of study
 data_research = data_research[["Country Name", "Doc Type", "Number of Papers","Number of Citations"]]  # Drop unnecessary variables
 
