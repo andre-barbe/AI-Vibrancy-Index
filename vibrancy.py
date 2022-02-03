@@ -5,6 +5,12 @@ import numpy as np
 
 pass
 
+#TODO: NOT FIXED. The citation data uses two different names for the Ivory Coast ("Cote Ivoire" and "Côte D'Ivoire"). The
+# research data has the same problem. I did not fix it.
+
+#TODO: NOT FIXED. This code generates a bunch of error messages.
+
+
 # ===============Import raw data from Excel sheets of Vibrancy website files===============
 # How to read from excel https://pandas.pydata.org/docs/reference/api/pandas.read_excel.html
 # Need to use engine option as described here: https://stackoverflow.com/questions/48066517/python-pandas-pd-read-excel-giving-importerror-install-xlrd-0-9-0-for-excel
@@ -24,6 +30,7 @@ if version_year == 2022:
 
 # =============== Clean Data used in both version=====
 data_ranking_2020 = data_raw_ranking_2020
+data_ranking_2020 = data_ranking_2020.replace({"Korea, Republic Of": "South Korea"}) # replace some country names that are not quite right
 
 # =============== Clean 2022 Data =====================
 if version_year == 2022:
@@ -42,8 +49,7 @@ if version_year == 2022:
         # https://stackoverflow.com/questions/21415661/logical-operators-for-boolean-indexing-in-pandas
         ]
     data_investment_amount = data_investment_amount.loc[data_investment_amount["Country Name"] != "Grand Total"]
-    data_investment_amount["Country Name"] = data_investment_amount[
-        "Country Name"].str.title()  # Capitalize all the same to make merging later easier
+    data_investment_amount["Country Name"] = data_investment_amount["Country Name"].str.title()  # Capitalize all the same to make merging later easier
 
     # =============== Clean number of companies data ===============
     data_number_companies = data_raw_number_companies
@@ -56,8 +62,7 @@ if version_year == 2022:
         # this selects rows if they have a country name or a investment value that is a number (ie , not isna). Note that I have to use ~ for not and | for or, as described here https://stackoverflow.com/questions/21415661/logical-operators-for-boolean-indexing-in-pandas
         ]
     data_number_companies = data_number_companies.loc[data_number_companies["Country Name"] != "Grand Total"]
-    data_number_companies["Country Name"] = data_number_companies[
-        "Country Name"].str.title()  # Capitalize all the same to make merging later easier
+    data_number_companies["Country Name"] = data_number_companies["Country Name"].str.title()  # Capitalize all the same to make merging later easier
 
 
     # =============== Clean Citations data ===============
@@ -86,7 +91,12 @@ if version_year == 2022:
     data_research = data_research_wide.reset_index()  # the pivot changed country name to the df index. This changes Country name from the df's index back to a variable
     data_research["Country Name"] = data_research["Country Name"].str.title()  # Capitalize all the same to make merging later easier
 
-pass
+    # ==============Clean final research data==============
+    data_research["Country Name"] = data_research["Country Name"].str.title()
+    data_research = data_research.replace({"Korea":"South Korea", #replace some country names that are not quite right
+                           "Cayman Islands (The)":"Cayman Islands",
+                           "Central African Republic (The)":"Central African Republic"})
+
 
 # =============== Clean 2021 Data =====================
 # =============== Filter research data ===============
@@ -152,8 +162,11 @@ pass
 # =============== Clean the merged Data ===============
 data_main = data_main.sort_values("Country Name")
 
-data_main = data_main.loc[data_main["Country Name"] != "-"]
-data_main = data_main.loc[data_main["Country Name"] != "None Listed"]
+data_main = data_main[~data_main["Country Name"].isin(["-","None Listed","Yearly Totals:","Yearly Grand Total"])]
+
+
+#data_main = data_main.loc[data_main["Country Name"] != "-"]
+#data_main = data_main.loc[data_main["Country Name"] != "None Listed"]
 data_main = data_main.loc[~pd.isna(data_main["Country Name"])]  # Drop if country name is missing
 
 # Create normalized version of variables
@@ -163,6 +176,7 @@ for variable_name in list_variables_to_normalize:
 
 # Create new variable that lists the number of NaNs in normalized variables
 data_main["Number NaN"]=data_main[list_variables_to_normalize].isnull().sum(axis=1) # Creates new column with number of NANs in each row. See https://stackoverflow.com/questions/30059260/python-pandas-counting-the-number-of-missing-nan-in-each-row
+data_main["Percent NaN"] = data_main["Number NaN"] / 14
 
 # Create my new indexes using each of the 3 weighting methods
 list_normalized_variables = [''.join(variable_name) + " Normalized" for variable_name in list_variables_to_normalize] # Create list of normalized variable names
