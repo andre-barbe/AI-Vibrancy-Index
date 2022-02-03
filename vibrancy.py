@@ -207,7 +207,8 @@ if version_year==2021:
     data_main['Min Rank']= np.minimum(data_main['Rank Andre Prefers'],data_main['Rank Equal Pillar Weights'],data_main['Rank Equal Metric Weights'])
     data_main['Rank Difference Max'] = data_main['Max Rank'] - data_main['Min Rank']
 if version_year==2022:
-    list_rank_variables = data_main.columns[pd.Series(list(data_main)).str.contains("Rank", na=False).tolist()] #Use NA=False so that for tuple variable names, it will be false. Lots of conversion between series and list. Very annoying. See https://pandas.pydata.org/docs/reference/api/pandas.Series.tolist.html and https://pandas.pydata.org/docs/reference/api/pandas.Series.str.match.html
+    list_rank_variables = data_main.columns[pd.Series(list(data_main)).str.contains("Rank Score", na=False).tolist()] #I use "rank score" instead of "rank" so that the 2020 rank is not included
+        #Use NA=False so that for tuple variable names, it will be false. Lots of conversion between series and list. Very annoying. See https://pandas.pydata.org/docs/reference/api/pandas.Series.tolist.html and https://pandas.pydata.org/docs/reference/api/pandas.Series.str.match.html
     data_main['Rank Difference Max'] = data_main[list_rank_variables].max(axis=1) - data_main[list_rank_variables].min(axis=1)
 
 # Export results to CSV
